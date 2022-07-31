@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import textwrap
 from git import Repo, Commit, DiffIndex, Diff, GitError
 import ffmpeg
 from typing import List
@@ -7,7 +8,8 @@ from PIL import Image, ImageFont, ImageDraw
 
 PRIMARY_FONT = "/usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf"
 PRIMARY_CANVAS = "./assets/background-full.png"
-REPOSITORY = "./testrepo"
+REPOSITORY = "."
+MINIMUM_COMMIT_MSG_LEN = 20 # Won't pull commits that have short messages like "bugfix"
 
 def get_repo(repo_dir: str= REPOSITORY):
     return Repo(Path(repo_dir))
@@ -18,7 +20,7 @@ def get_commits_for_tag(repo: Repo, tag: int, branch: str = "main"):
     filtered: List[Commit] = []
 
     for commit in commits:
-        if len(commit.message) > 60:
+        if len(commit.message) > MINIMUM_COMMIT_MSG_LEN:
             filtered.append(commit)
 
     filtered.reverse()
@@ -28,6 +30,8 @@ def get_commits_for_tag(repo: Repo, tag: int, branch: str = "main"):
 def is_line_of_code(line: str):
     return line.startswith("+") or line.startswith("-") or line.startswith(" ")
 
+def text_wrap_line(line: str):
+    return textwrap.wrap(line, width=125)
 
 def bytes_to_string(probably_bytes):
     if isinstance(probably_bytes, bytes):
@@ -39,10 +43,14 @@ def split_the_difference(diff: Diff, ignored_lines=[]):
     idx = 0
     for line in diff.diff.splitlines():
         decoded = bytes_to_string(line)
+        first_char = decoded[0]
         if is_line_of_code(decoded) and len(decoded.strip("+-")) > 0:
             idx += 1
             if idx not in ignored_lines:
-                lines.append(decoded)
+                # lines.append(decoded)
+                wrapped = text_wrap_line(decoded[1:])
+                for line in wrapped:
+                    lines.append(first_char + line)
     return lines
 
 def render_header(diff: Diff):
