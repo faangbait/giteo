@@ -85,15 +85,26 @@ def draw_frame(commit, diff, headers, footers, new_lines, removed_lines, existin
         draw.text((30,16), header_filename, font=fnt, fill=header_color_fg, background=header_color_bg)
         draw.text((40 + len(header_filename)*10,16), "   ".join(headers), font=fnt, fill="gray")
         draw.text((30,700), footers[0], font=fnt, fill="gray")
+        
+        ignored_before = 0
         for lidx, line in enumerate(existing_lines):
-            if line is not None and lidx not in ignored_lines:
-                draw.text((30, 64+(16*(lidx-len(ignored_lines)))), line[1:], font=fnt, fill="white", escape_text=True)
+            if lidx in ignored_lines:
+                ignored_before += 1
+            elif line is not None:
+                draw.text((30, 64+(16*(lidx-ignored_before))), line[1:], font=fnt, fill="white", escape_text=True)
+
+        ignored_before = 0
         for lidx, line in enumerate(new_lines):
-            if line is not None and lidx not in ignored_lines:
-                draw.text((30, 64+(16*(lidx-len(ignored_lines)))), line[1:], font=fnt, fill="green", escape_text=True)
+            if lidx in ignored_lines:
+                ignored_before += 1
+            elif line is not None:
+                draw.text((30, 64+(16*(lidx-ignored_before))), line[1:], font=fnt, fill="green", escape_text=True)
+        ignored_before = 0
         for lidx, line in enumerate(removed_lines):
-            if line is not None and lidx not in ignored_lines:
-                draw.text((30, 64+(16*(lidx-len(ignored_lines)))), line[1:], font=fnt, fill="red", escape_text=True)
+            if lidx in ignored_lines:
+                ignored_before += 1
+            elif line is not None:
+                draw.text((30, 64+(16*(lidx-ignored_before))), line[1:], font=fnt, fill="red", escape_text=True)
 
         return save_frame(canvas, commit, img_count)
 
@@ -167,7 +178,7 @@ def render_scene(commit: Commit):
                     next_line = line[:i+1]
                     partial_new = new_lines[:lidx]
                     partial_new.append(next_line)
-                    img_count = draw_frame(commit, diff, headers, footers, partial_new, removed_lines[:lidx+1], existing_lines, img_count, ignored_lines)
+                    img_count = draw_frame(commit, diff, headers, footers, partial_new, removed_lines[:lidx+1], rem_or_ex_lines, img_count, ignored_lines)
                     
         for i in range(32):
             img_count = draw_frame(commit, diff, headers, footers, new_lines, removed_lines, existing_lines, img_count, ignored_lines)
